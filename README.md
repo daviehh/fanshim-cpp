@@ -61,6 +61,7 @@ Will use the value in the file to override the defaults, no need to specify all 
  
 ## Notes/todo
  - Does not currently handle exit signal.
+ - No button support (I think given the small size of the button, it'll be easier to force the fan on/off through software. May add this later.)
  
 ## Additional features
  
