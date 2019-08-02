@@ -56,9 +56,10 @@ Will use the value in the file to override the defaults, no need to specify all 
  `delay`: in seconds, the program will wait this amount of time before checking the temperature again. Default to 10.
  
  `budget`: an  integer n, the program will only turn on/off the fan if the temperature is consecutively above (below) the on (off) threshold for the last n temperature measurements. Defaults to 3.
+
+ `brightness`: an integer from 0 to 31, LED brightness, 0 means no LED (default).
  
 ## Notes/todo
- - No LED for now.
  - Does not currently handle exit signal.
  
 ## Additional features
