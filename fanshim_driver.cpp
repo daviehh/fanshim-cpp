@@ -20,17 +20,7 @@ const int PIN_LED_MOSI = 15;
 const int CLCK_STRETCH =  5;
 const int fanshim_pin = 18;
 
-inline static void write_byte(uint8_t byte)
-{
-    for (int n = 0; n < 8; n++)
-    {
-        digitalWrite(PIN_LED_MOSI, (byte & (1 << (7 - n))) > 0);
-        digitalWrite(PIN_LED_CLCK, HIGH);
-        usleep(CLCK_STRETCH);
-        digitalWrite(PIN_LED_CLCK, LOW);
-        usleep(CLCK_STRETCH);
-    }
-}
+
 
 
 // hue: using 0 to 1/3 => red to green.
@@ -57,7 +47,7 @@ double hsv_k(int n, double hue)
 double hsv_f(int n, double hue,double s, double v)
 {
     double k = hsv_k(n,hue);
-    return v - v * s * max( { min( {k, 4-k,1.0} ), 0.0 } );
+    return v - v * s * max( { min( {k, 4-k, 1.0} ), 0.0 } );
 }
 
 vector<int> hsv2rgb(double h, double s, double v)
@@ -76,18 +66,29 @@ vector<int> hsv2rgb(double h, double s, double v)
 //////////////////////////////////////////////////////////////////////////////////////////
 //https://github.com/pimoroni/fanshim-python/issues/19#issuecomment-517478717
 //////////////////////////////////////////////////////////////////////////////////////////
+inline static void write_byte(uint8_t byte)
+{
+    for (int n = 0; n < 8; n++)
+    {
+        digitalWrite(PIN_LED_MOSI, (byte & (1 << (7 - n))) > 0);
+        digitalWrite(PIN_LED_CLCK, HIGH);
+        usleep(CLCK_STRETCH);
+        digitalWrite(PIN_LED_CLCK, LOW);
+        usleep(CLCK_STRETCH);
+    }
+}
 
 void set_led(double tmp, int br,int hi, int lo)
 {
-    double s,v;
-    s=1;
-    v=br/31.0;
+    double s, v;
+    s = 1;
+    v = br/31.0;
     //// hsv: hue from temperature; s set to 1, v set to brightness like the official code https://github.com/pimoroni/fanshim-python/blob/5841386d252a80eeac4155e596d75ef01f86b1cf/examples/automatic.py#L44
     
-    vector<int> rgb=hsv2rgb(tmp2hue(tmp,hi,lo),s,v);
-    int r=rgb.at(0);
-    int g=rgb.at(1);
-    int b=rgb.at(2);
+    vector<int> rgb = hsv2rgb(tmp2hue(tmp, hi, lo), s, v);
+    int r = rgb.at(0);
+    int g = rgb.at(1);
+    int b = rgb.at(2);
     
     
     digitalWrite(PIN_LED_MOSI, 0);
@@ -186,7 +187,7 @@ int main (void)
     
     fstream tmp_file;
     float tmp = 0;
-    deque<int> tmp_q (budget,0.0);
+    deque<int> tmp_q (budget, 0.0);
     int j;
     bool all_low,all_high;
     
