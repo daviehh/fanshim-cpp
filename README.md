@@ -19,7 +19,7 @@ https://shop.pimoroni.com/products/fan-shim
  ## Build
  - Install wiring pi (pi 4 may need the latest verion `2.52` to work: http://wiringpi.com/wiringpi-updated-to-2-52-for-the-raspberry-pi-4b/)
  - Put the `json.hpp` file from https://github.com/nlohmann/json/releases in the same folder as the source code, tested with `3.7.0`
- - Compile with `g++ fanshim_driver.cpp -o fanshim_driver -O3 -lwiringPi -std=c++11`
+ - Compile with `g++ fanshim_driver.cpp -o fanshim_driver -O3 -lwiringPi -std=c++11` (tested with `clang++`)
  
  ## Example systemd service file
  Change `/path/to/compiled/binary` to the compiled binary path.
