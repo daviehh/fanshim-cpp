@@ -32,6 +32,8 @@ inline static void write_byte(uint8_t byte)
     }
 }
 
+
+// hue: using 0 to 1/3 => red to green.
 double tmp2hue(double tmp, double hi, double lo)
 {
     double hue = 0;
@@ -72,14 +74,17 @@ vector<int> hsv2rgb(double h, double s, double v)
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-void set_led(double tmp, int br)
+//https://github.com/pimoroni/fanshim-python/issues/19#issuecomment-517478717
+//////////////////////////////////////////////////////////////////////////////////////////
+
+void set_led(double tmp, int br,int hi, int lo)
 {
     double s,v;
     s=1;
     v=br/31.0;
     //// hsv: hue from temperature; s set to 1, v set to brightness like the official code https://github.com/pimoroni/fanshim-python/blob/5841386d252a80eeac4155e596d75ef01f86b1cf/examples/automatic.py#L44
     
-    vector<int> rgb=hsv2rgb(tmp2hue(tmp,60,40),s,v);
+    vector<int> rgb=hsv2rgb(tmp2hue(tmp,hi,lo),s,v);
     int r=rgb.at(0);
     int g=rgb.at(1);
     int b=rgb.at(2);
@@ -117,13 +122,15 @@ void set_led(double tmp, int br)
 
 map<string, int>  get_fs_conf()
 {
-    map<string, int> fs_conf {
+    map<string, int> fs_conf_default {
         {"on-threshold", 60},
         {"off-threshold", 50},
         {"budget",3},
         {"delay", 10},
         {"brightness",0}
     };
+
+    map<string, int> fs_conf = fs_conf_default;
     
     try
     {
@@ -134,10 +141,17 @@ map<string, int>  get_fs_conf()
         for (auto& el : fs_cfg_custom.items()) {
             fs_conf[el.key()] = el.value();
         }
+
+        if ( (fs_conf["on-threshold"] <= fs_conf["off-threshold"]) || (fs_conf["budget"] <= 0) || (fs_conf["delay"] <= 0) )
+        {
+            throw runtime_error("sanity check");
+        }
+
     }
-    catch (...)
+    catch (exception &e)
     {
-        cout<<"error parsing config file"<<endl;
+        cout<<"error parsing config file: "<<e.what()<<endl;
+        fs_conf = fs_conf_default;
     }
     
     for (map<string,int>::iterator it=fs_conf.begin(); it!=fs_conf.end(); ++it)
@@ -194,7 +208,7 @@ int main (void)
     
     if (br == 0)
     {
-        set_led(0,0);
+        set_led(0,0,on_threshold,off_threshold);
     }
     
     while(1){
@@ -245,7 +259,7 @@ int main (void)
         
         /// set led
         if(br !=0){
-            set_led(tmp,br);
+            set_led(tmp,br,on_threshold,off_threshold);
         }
         
         usleep(sleep_msec);
