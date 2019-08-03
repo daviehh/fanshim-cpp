@@ -9,6 +9,8 @@
 #include <cmath>
 #include <vector>
 
+#include <filesystem>
+
 #include "json.hpp"
 
 
@@ -128,7 +130,8 @@ map<string, int>  get_fs_conf()
         {"off-threshold", 50},
         {"budget",3},
         {"delay", 10},
-        {"brightness",0}
+        {"brightness",0},
+        {"blink", 1}
     };
 
     map<string, int> fs_conf = fs_conf_default;
@@ -162,6 +165,21 @@ map<string, int>  get_fs_conf()
 }
 
 
+void blk_led(double tmp, int br, int on_threshold, int off_threshold,int delay)
+{
+    const int halfsec = 500*1000;
+    for (int i = 1; i <= delay; i++)
+    {
+        set_led(tmp,br,on_threshold,off_threshold);
+        usleep(halfsec);
+        set_led(tmp,0,on_threshold,off_threshold);
+        usleep(halfsec);
+    }
+}
+
+
+
+
 int main (void)
 {
     
@@ -173,8 +191,10 @@ int main (void)
     pinMode(PIN_LED_MOSI, OUTPUT);
     
     map<string, int> fs_conf = get_fs_conf();
-    
-    const int sleep_msec = fs_conf["delay"]*1000*1000;
+
+
+    const int delay_sec = fs_conf["delay"];
+    const int sleep_msec = delay_sec*1000*1000;
     const int on_threshold = fs_conf["on-threshold"];
     const int off_threshold = fs_conf["off-threshold"];
     const int budget = fs_conf["budget"];
@@ -194,6 +214,10 @@ int main (void)
     tmp_file.open("/sys/class/thermal/thermal_zone0/temp", ios_base::in);
     
     
+    ///override file
+    filesystem::path override_fp("/usr/local/etc/.force_fanshim");
+
+
     ///led
     int br = fs_conf["brightness"];
     
@@ -230,8 +254,15 @@ int main (void)
         all_low = all_of(tmp_q.begin(), tmp_q.end(), [=](int tx){return tx<off_threshold;});
         all_high = all_of(tmp_q.begin(), tmp_q.end(), [=](int tx){return tx>on_threshold;});
         
-        cout<<"all low: "<< boolalpha << all_low <<endl;
+        cout<<"all low: "<< boolalpha << all_low <<"; ";
         cout<<"all high: "<< boolalpha << all_high <<endl;
+
+        //override
+        if ( filesystem::exists(override_fp) )
+        {
+            all_high = true;
+            cout<<"forcing fan on: override effective."<<endl;
+        }
         
         read_fs_pin = digitalRead(fanshim_pin);
         if(all_high && read_fs_pin == 0)
@@ -260,10 +291,17 @@ int main (void)
         
         /// set led
         if(br !=0){
-            set_led(tmp,br,on_threshold,off_threshold);
+            if ( fs_conf["blink"] == 1 && read_fs_pin == 0 )
+            {
+                blk_led(tmp, br, on_threshold, off_threshold, delay_sec);
+            }
+            else
+            {
+                set_led(tmp, br, on_threshold, off_threshold);
+                usleep(sleep_msec);
+            }
         }
         
-        usleep(sleep_msec);
     }
     
     return 0 ;
