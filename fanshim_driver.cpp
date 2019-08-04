@@ -131,7 +131,7 @@ map<string, int>  get_fs_conf()
         {"budget",3},
         {"delay", 10},
         {"brightness",0},
-        {"blink", 1}
+        {"blink", 0}
     };
 
     map<string, int> fs_conf = fs_conf_default;
