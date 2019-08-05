@@ -82,16 +82,21 @@ inline static void write_byte(uint8_t byte)
 
 void set_led(double tmp, int br,int hi, int lo)
 {
-    double s, v;
-    s = 1;
-    v = br/31.0;
-    //// hsv: hue from temperature; s set to 1, v set to brightness like the official code https://github.com/pimoroni/fanshim-python/blob/5841386d252a80eeac4155e596d75ef01f86b1cf/examples/automatic.py#L44
     
-    vector<int> rgb = hsv2rgb(tmp2hue(tmp, hi, lo), s, v);
-    int r = rgb.at(0);
-    int g = rgb.at(1);
-    int b = rgb.at(2);
+    int r = 0, g = 0, b = 0;
     
+    if (br != 0)
+    {
+        double s, v;
+        s = 1;
+        v = br/31.0;
+        //// hsv: hue from temperature; s set to 1, v set to brightness like the official code https://github.com/pimoroni/fanshim-python/blob/5841386d252a80eeac4155e596d75ef01f86b1cf/examples/automatic.py#L44
+        
+        vector<int> rgb = hsv2rgb(tmp2hue(tmp, hi, lo), s, v);
+        r = rgb.at(0);
+        g = rgb.at(1);
+        b = rgb.at(2);
+    }
     
     digitalWrite(PIN_LED_MOSI, 0);
     for (int i = 0; i < 32; ++i)
@@ -133,7 +138,7 @@ map<string, int>  get_fs_conf()
         {"brightness",0},
         {"blink", 0}
     };
-
+    
     map<string, int> fs_conf = fs_conf_default;
     
     try
@@ -145,12 +150,12 @@ map<string, int>  get_fs_conf()
         for (auto& el : fs_cfg_custom.items()) {
             fs_conf[el.key()] = el.value();
         }
-
+        
         if ( (fs_conf["on-threshold"] <= fs_conf["off-threshold"]) || (fs_conf["budget"] <= 0) || (fs_conf["delay"] <= 0) )
         {
             throw runtime_error("sanity check");
         }
-
+        
     }
     catch (exception &e)
     {
@@ -167,13 +172,11 @@ map<string, int>  get_fs_conf()
 
 void blk_led(double tmp, int br, int on_threshold, int off_threshold,int delay)
 {
-    const int halfsec = 500*1000;
+    const int blink_sec = 1000*1000;
     for (int i = 1; i <= delay; i++)
     {
-        set_led(tmp,br,on_threshold,off_threshold);
-        usleep(halfsec);
-        set_led(tmp,0,on_threshold,off_threshold);
-        usleep(halfsec);
+        set_led(tmp, ( (i % 2) * br ), on_threshold, off_threshold);
+        usleep(blink_sec);
     }
 }
 
@@ -191,8 +194,8 @@ int main (void)
     pinMode(PIN_LED_MOSI, OUTPUT);
     
     map<string, int> fs_conf = get_fs_conf();
-
-
+    
+    
     const int delay_sec = fs_conf["delay"];
     const int sleep_msec = delay_sec*1000*1000;
     const int on_threshold = fs_conf["on-threshold"];
@@ -216,8 +219,8 @@ int main (void)
     
     ///override file
     filesystem::path override_fp("/usr/local/etc/.force_fanshim");
-
-
+    
+    
     ///led
     int br = fs_conf["brightness"];
     
@@ -256,7 +259,7 @@ int main (void)
         
         cout<<"all low: "<< boolalpha << all_low <<"; ";
         cout<<"all high: "<< boolalpha << all_high <<endl;
-
+        
         //override
         if ( filesystem::exists(override_fp) )
         {
