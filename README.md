@@ -16,7 +16,8 @@ https://shop.pimoroni.com/products/fan-shim
  - nlohmann/json https://github.com/nlohmann/json/
  - official fanshim controller code https://github.com/pimoroni/fanshim-python
  
- ## Build
+
+## Build
  - Install the bcm2835 library https://www.airspayce.com/mikem/bcm2835/index.html (tested with ver. 1.60)
  - Put the `json.hpp` file from https://github.com/nlohmann/json/releases in the same folder as the source code, tested with `3.7.0`
  - Compile with `clang++ fanshim_driver_bcm2835.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lbcm2835` (may also work with `g++`)
