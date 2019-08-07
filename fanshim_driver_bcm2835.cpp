@@ -108,7 +108,7 @@ void set_led(double tmp, int br,int hi, int lo)
     }
     
     //start frame
-    bcm2835_gpio_write(PIN_LED_MOSI, 0);
+    bcm2835_gpio_write(PIN_LED_MOSI, LOW);
     for (int i = 0; i < 32; ++i)
     {
         bcm2835_gpio_write(PIN_LED_CLCK, HIGH);
@@ -124,7 +124,7 @@ void set_led(double tmp, int br,int hi, int lo)
     write_byte(r); // r
     
     // An end frame consisting of at least (n/2) bits of 1, where n is the number of LEDs in the string
-    bcm2835_gpio_write(PIN_LED_MOSI, 1);
+    bcm2835_gpio_write(PIN_LED_MOSI, HIGH);
     for (int i = 0; i < 1; ++i)
     {
         bcm2835_gpio_write(PIN_LED_CLCK, HIGH);
@@ -286,21 +286,21 @@ int main (void)
         }
         
         read_fs_pin = bcm2835_gpio_lev(fanshim_pin);
-        if(all_high && read_fs_pin == 0)
+        if(all_high && read_fs_pin == LOW)
         {
-            bcm2835_gpio_write(fanshim_pin, 1);
+            bcm2835_gpio_write(fanshim_pin, HIGH);
         }
         else
         {
-            if(all_low && read_fs_pin == 1)
+            if(all_low && read_fs_pin == HIGH)
             {
-                bcm2835_gpio_write(fanshim_pin, 0);
+                bcm2835_gpio_write(fanshim_pin, LOW);
             }
         }
         
         
         read_fs_pin = bcm2835_gpio_lev(fanshim_pin);
-        cout<<"fan state now: "<< (read_fs_pin == 0 ? "[off]" : "[on]") <<endl;
+        cout<<"fan state now: "<< (read_fs_pin == LOW ? "[off]" : "[on]") <<endl;
         
         ofstream nodex_fs;
         nodex_fs.open("/usr/local/etc/node_exp_txt/cpu_fan.prom");
@@ -312,7 +312,7 @@ int main (void)
         
         /// set led
         if(br !=0){
-            if ( fs_conf["blink"] == 1 && read_fs_pin == 0 )
+            if ( fs_conf["blink"] == 1 && read_fs_pin == LOW )
             {
                 blk_led(tmp, br, on_threshold, off_threshold, delay_sec);
             }
