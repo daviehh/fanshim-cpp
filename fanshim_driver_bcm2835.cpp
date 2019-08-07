@@ -1,7 +1,7 @@
-#include <wiringPi.h>
 #include <iostream>
 #include <fstream>
-#include <unistd.h>
+// #include <unistd.h>
+#include <time.h>
 #include <string>
 #include <deque>
 
@@ -12,6 +12,7 @@
 #include <filesystem>
 
 #include "json.hpp"
+#include <bcm2835.h>
 
 
 using json = nlohmann::json;
@@ -23,6 +24,14 @@ const int CLCK_STRETCH =  5;
 const int fanshim_pin = 18;
 
 
+//only for <1 sec
+int nano_usleep_frac(long msec)
+{
+    struct timespec req;
+    req.tv_sec = 0;
+    req.tv_nsec = (long)(msec * 1000);
+    return nanosleep(&req , NULL);
+}
 
 
 // hue: using 0 to 1/3 => red to green.
@@ -72,11 +81,11 @@ inline static void write_byte(uint8_t byte)
 {
     for (int n = 0; n < 8; n++)
     {
-        digitalWrite(PIN_LED_MOSI, (byte & (1 << (7 - n))) > 0);
-        digitalWrite(PIN_LED_CLCK, HIGH);
-        usleep(CLCK_STRETCH);
-        digitalWrite(PIN_LED_CLCK, LOW);
-        usleep(CLCK_STRETCH);
+        bcm2835_gpio_write(PIN_LED_MOSI, (byte & (1 << (7 - n))) > 0);
+        bcm2835_gpio_write(PIN_LED_CLCK, HIGH);
+        // nano_usleep_frac(CLCK_STRETCH);
+        bcm2835_gpio_write(PIN_LED_CLCK, LOW);
+        // nano_usleep_frac(CLCK_STRETCH);
     }
 }
 
@@ -98,13 +107,14 @@ void set_led(double tmp, int br,int hi, int lo)
         b = rgb.at(2);
     }
     
-    digitalWrite(PIN_LED_MOSI, 0);
+    //start frame
+    bcm2835_gpio_write(PIN_LED_MOSI, LOW);
     for (int i = 0; i < 32; ++i)
     {
-        digitalWrite(PIN_LED_CLCK, HIGH);
-        usleep(CLCK_STRETCH);
-        digitalWrite(PIN_LED_CLCK, LOW);
-        usleep(CLCK_STRETCH);
+        bcm2835_gpio_write(PIN_LED_CLCK, HIGH);
+        // nano_usleep_frac(CLCK_STRETCH);
+        bcm2835_gpio_write(PIN_LED_CLCK, LOW);
+        // nano_usleep_frac(CLCK_STRETCH);
     }
     
     // A 32 bit LED frame for each LED in the string (<0xE0+brightness> <blue> <green> <red>)
@@ -114,13 +124,13 @@ void set_led(double tmp, int br,int hi, int lo)
     write_byte(r); // r
     
     // An end frame consisting of at least (n/2) bits of 1, where n is the number of LEDs in the string
-    digitalWrite(PIN_LED_MOSI, 1);
+    bcm2835_gpio_write(PIN_LED_MOSI, HIGH);
     for (int i = 0; i < 1; ++i)
     {
-        digitalWrite(PIN_LED_CLCK, HIGH);
-        usleep(CLCK_STRETCH);
-        digitalWrite(PIN_LED_CLCK, LOW);
-        usleep(CLCK_STRETCH);
+        bcm2835_gpio_write(PIN_LED_CLCK, HIGH);
+        // nano_usleep_frac(CLCK_STRETCH);
+        bcm2835_gpio_write(PIN_LED_CLCK, LOW);
+        // nano_usleep_frac(CLCK_STRETCH);
     }
     
 }
@@ -172,11 +182,16 @@ map<string, int>  get_fs_conf()
 
 void blk_led(double tmp, int br, int on_threshold, int off_threshold,int delay)
 {
-    const int blink_sec = 1000*1000;
+    struct timespec ti;
+    ti.tv_sec = 0;
+    ti.tv_nsec = 500*1000*1000;
     for (int i = 1; i <= delay; i++)
     {
-        set_led(tmp, ( (i % 2) * br ), on_threshold, off_threshold);
-        usleep(blink_sec);
+        // set_led(tmp, ( (i % 2) * br ), on_threshold, off_threshold);
+        set_led(tmp, br, on_threshold, off_threshold); 
+        nanosleep(&ti, NULL);
+        set_led(tmp, 0, on_threshold, off_threshold); 
+        nanosleep(&ti, NULL);
     }
 }
 
@@ -187,20 +202,23 @@ int main (void)
 {
     
     
-    wiringPiSetupGpio();
-    pinMode(fanshim_pin, OUTPUT);
+    bcm2835_init();
+    bcm2835_gpio_fsel(fanshim_pin, BCM2835_GPIO_FSEL_OUTP );
     
-    pinMode(PIN_LED_CLCK, OUTPUT);
-    pinMode(PIN_LED_MOSI, OUTPUT);
+    bcm2835_gpio_fsel(PIN_LED_CLCK, BCM2835_GPIO_FSEL_OUTP );
+    bcm2835_gpio_fsel(PIN_LED_MOSI, BCM2835_GPIO_FSEL_OUTP );
+
+    cout<<"bcm lib version: "<<bcm2835_version()<<endl;
     
     map<string, int> fs_conf = get_fs_conf();
     
     
     const int delay_sec = fs_conf["delay"];
-    const int sleep_msec = delay_sec*1000*1000;
     const int on_threshold = fs_conf["on-threshold"];
     const int off_threshold = fs_conf["off-threshold"];
     const int budget = fs_conf["budget"];
+
+    const struct timespec sleep_delay{delay_sec,0L};
     
     int read_fs_pin = 0;
     
@@ -267,22 +285,22 @@ int main (void)
             cout<<"forcing fan on: override effective."<<endl;
         }
         
-        read_fs_pin = digitalRead(fanshim_pin);
-        if(all_high && read_fs_pin == 0)
+        read_fs_pin = bcm2835_gpio_lev(fanshim_pin);
+        if(all_high && read_fs_pin == LOW)
         {
-            digitalWrite(fanshim_pin, 1);
+            bcm2835_gpio_write(fanshim_pin, HIGH);
         }
         else
         {
-            if(all_low && read_fs_pin == 1)
+            if(all_low && read_fs_pin == HIGH)
             {
-                digitalWrite(fanshim_pin, 0);
+                bcm2835_gpio_write(fanshim_pin, LOW);
             }
         }
         
         
-        read_fs_pin = digitalRead(fanshim_pin);
-        cout<<"fan state now: "<< (read_fs_pin == 0 ? "[off]" : "[on]") <<endl;
+        read_fs_pin = bcm2835_gpio_lev(fanshim_pin);
+        cout<<"fan state now: "<< (read_fs_pin == LOW ? "[off]" : "[on]") <<endl;
         
         ofstream nodex_fs;
         nodex_fs.open("/usr/local/etc/node_exp_txt/cpu_fan.prom");
@@ -294,14 +312,14 @@ int main (void)
         
         /// set led
         if(br !=0){
-            if ( fs_conf["blink"] == 1 && read_fs_pin == 0 )
+            if ( fs_conf["blink"] == 1 && read_fs_pin == LOW )
             {
                 blk_led(tmp, br, on_threshold, off_threshold, delay_sec);
             }
             else
             {
                 set_led(tmp, br, on_threshold, off_threshold);
-                usleep(sleep_msec);
+                nanosleep(&sleep_delay, NULL);
             }
         }
         
