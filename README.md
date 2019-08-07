@@ -60,8 +60,10 @@ Will use the value in the file to override the defaults, no need to specify all 
 
 - `brightness`: an integer from 0 to 31, LED brightness, 0 means no LED (default).
 
-- `blink`: an integer 0 or 1, where 1 means the LED will blink when the fan is not spinning. Defaults to 0. (Note turning blink on can cause ~0.7 % cpu on raspberry pi 4 on my end.)
-
+-  `blink`: an integer in [0, 1 , 2], where 
+   - 0: no blink (default); 
+   - 1: the LED will blink when the fan is not spinning; 
+   - 2: the LED will "breath" when the fan is not spinning, the max brightness in this mode is `breath_brgt` (default 10).
 
 
 ## Notes/todo

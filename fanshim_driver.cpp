@@ -23,6 +23,7 @@ const int PIN_LED_MOSI = 15;
 const int CLCK_STRETCH =  5;
 const int fanshim_pin = 18;
 
+int br_counter = 0;
 
 //only for <1 sec
 int nano_usleep_frac(long msec)
@@ -146,7 +147,8 @@ map<string, int>  get_fs_conf()
         {"budget",3},
         {"delay", 10},
         {"brightness",0},
-        {"blink", 0}
+        {"blink", 0},
+        {"breath_brgt",10}
     };
     
     map<string, int> fs_conf = fs_conf_default;
@@ -161,7 +163,7 @@ map<string, int>  get_fs_conf()
             fs_conf[el.key()] = el.value();
         }
         
-        if ( (fs_conf["on-threshold"] <= fs_conf["off-threshold"]) || (fs_conf["budget"] <= 0) || (fs_conf["delay"] <= 0) )
+        if ( (fs_conf["on-threshold"] <= fs_conf["off-threshold"]) || (fs_conf["budget"] <= 0) || (fs_conf["delay"] <= 0) || (fs_conf["breath_brgt"]<=0) || (fs_conf["breath_brgt"]>31) || fs_conf["blink"]<0 || fs_conf["blink"]>2)
         {
             throw runtime_error("sanity check");
         }
@@ -195,7 +197,23 @@ void blk_led(double tmp, int br, int on_threshold, int off_threshold,int delay)
     }
 }
 
+void breath_led(double tmp, int brth, int on_threshold, int off_threshold, int delay, int* brs)
+{
+    struct timespec req;
+     req.tv_sec = 0;
+     req.tv_nsec = (long)(100 * 1000 * 1000);
 
+     for (int i=0; i<10*delay; i++)
+        {
+            // cout<<brs[br_counter]<<endl;
+            set_led(tmp, brs[br_counter], on_threshold, off_threshold); 
+            if (br_counter >= 2*brth -1)
+                br_counter = 0;
+            else
+                br_counter++;
+            nanosleep(&req , NULL);
+        }
+}
 
 
 int main (void)
@@ -241,6 +259,17 @@ int main (void)
     
     ///led
     int br = fs_conf["brightness"];
+    int brt_br = fs_conf["breath_brgt"];
+    int *brs = new int[brt_br*2];
+
+    for (int i=0;i<brt_br*2;i++)
+          {
+            if (i<=brt_br)
+                brs[i] = i;
+            else
+                brs[i]=2*brt_br-i;
+          }
+    
     
     if (br > 31) {
         br = 31;
@@ -250,12 +279,15 @@ int main (void)
         br = 0;
         cout<<"brightness lower than min = 0, set to 0"<<endl;
     }
+
+
     
     
     if (br == 0)
     {
         set_led(0,0,on_threshold,off_threshold);
-    }
+    } 
+
     
     while(1){
         tmp_file >> tmp;
@@ -312,9 +344,12 @@ int main (void)
         
         /// set led
         if(br !=0){
-            if ( fs_conf["blink"] == 1 && read_fs_pin == LOW )
+            if ( fs_conf["blink"] != 0 && read_fs_pin == LOW )
             {
-                blk_led(tmp, br, on_threshold, off_threshold, delay_sec);
+                if (fs_conf["blink"] == 1)
+                    blk_led(tmp, br, on_threshold, off_threshold, delay_sec);
+                else if (fs_conf["blink"] == 2)
+                    breath_led(tmp, brt_br, on_threshold, off_threshold, delay_sec, brs);
             }
             else
             {
