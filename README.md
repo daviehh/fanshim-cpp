@@ -12,14 +12,14 @@ https://shop.pimoroni.com/products/fan-shim
 **Only proceed if you know what the code is doing.**
 
 ## Credits
- - Wiring Pi http://wiringpi.com/
+ - bcm2835 https://www.airspayce.com/mikem/bcm2835/index.html
  - nlohmann/json https://github.com/nlohmann/json/
  - official fanshim controller code https://github.com/pimoroni/fanshim-python
  
  ## Build
- - Install wiring pi (pi 4 may need the latest verion `2.52` to work: http://wiringpi.com/wiringpi-updated-to-2-52-for-the-raspberry-pi-4b/)
+ - Install the bcm2835 library https://www.airspayce.com/mikem/bcm2835/index.html (tested with ver. 1.60)
  - Put the `json.hpp` file from https://github.com/nlohmann/json/releases in the same folder as the source code, tested with `3.7.0`
- - Compile with `g++ fanshim_driver.cpp -o fanshim_driver -O3 -lwiringPi -std=c++17 -lstdc++fs` (tested with `clang++`)
+ - Compile with `clang++ fanshim_driver_bcm2835.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lbcm2835` (may also work with `g++`)
  
  ## Example systemd service file
  Change `/path/to/compiled/binary` to the compiled binary path.
