@@ -163,7 +163,10 @@ map<string, int>  get_fs_conf()
             fs_conf[el.key()] = el.value();
         }
         
-        if ( (fs_conf["on-threshold"] <= fs_conf["off-threshold"]) || (fs_conf["budget"] <= 0) || (fs_conf["delay"] <= 0) || (fs_conf["breath_brgt"]<=0) || (fs_conf["breath_brgt"]>31) || fs_conf["blink"]<0 || fs_conf["blink"]>2)
+        if ( (fs_conf["on-threshold"] <= fs_conf["off-threshold"]) 
+            || (fs_conf["budget"] <= 0) || (fs_conf["delay"] <= 0) 
+            || (fs_conf["breath_brgt"]<=0) || (fs_conf["breath_brgt"]>31) 
+            || fs_conf["blink"]<0 || fs_conf["blink"]>2 )
         {
             throw runtime_error("sanity check");
         }
