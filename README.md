@@ -17,8 +17,8 @@ https://shop.pimoroni.com/products/fan-shim
  - official fanshim controller code https://github.com/pimoroni/fanshim-python
  
 ## Branches
-master: using the Wiring Pi library
-bcm2835: since we do not need some fancy features, we may also try the bcm2835 library. may be more cpu/memory friendly.
+- master: using the Wiring Pi library
+- bcm2835: since we do not need some fancy features, we may also try the bcm2835 library. may be more cpu/memory friendly.
  
 ## Build
  - Install wiring pi (pi 4 may need the latest verion `2.52` to work: http://wiringpi.com/wiringpi-updated-to-2-52-for-the-raspberry-pi-4b/)
