@@ -71,6 +71,8 @@ Will use the value in the file to override the defaults, no need to specify all 
  - No button support (I think given the small size of the button, it'll be easier to force the fan on/off through software based on e.g. whether a certain file exists. Currently, the file is hard-coded as `/usr/local/etc/.force_fanshim`: fan will be on if this file exists)
 
  - Does not currently handle exit signal.
+ 
+ - Use libgpio rather than wiringpi/bcm2835 [https://github.com/pimoroni/fanshim-python/issues/32#issuecomment-522629721]
 
 
 ## Additional features
