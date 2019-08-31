@@ -1,5 +1,6 @@
 # fanshim-cpp
-C++ driver code for the fanshim on raspberry pi using `libgpiod`.
+C++ driver code for the fanshim on raspberry pi using `libgpiod`
+
 https://shop.pimoroni.com/products/fan-shim
 
 
