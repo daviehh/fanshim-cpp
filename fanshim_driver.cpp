@@ -4,6 +4,7 @@
 #include <time.h>
 #include <string>
 #include <deque>
+#include <csignal>
 
 #include <algorithm>
 #include <cmath>
@@ -12,18 +13,25 @@
 #include <filesystem>
 
 #include "json.hpp"
-#include <bcm2835.h>
+#include <gpiod.h>
 
+// clang++ fanshim_driverd.cpp -O3 -std=c++17 -lstdc++fs -lgpiod -o test 
 
 using json = nlohmann::json;
 using namespace std;
 
-const int PIN_LED_CLCK = 14;
-const int PIN_LED_MOSI = 15;
-const int CLCK_STRETCH =  5;
+const int led_clck_pin = 14;
+const int led_dat_pin = 15;
+const int led_write_wait =  5;
 const int fanshim_pin = 18;
 
+const int LOW = 0;
+const int HIGH =1;
+
 int br_counter = 0;
+
+struct gpiod_chip *chip;
+struct gpiod_line *ln_fan, *ln_led_clk, *ln_led_dat;
 
 //only for <1 sec
 int nano_usleep_frac(long msec)
@@ -82,10 +90,10 @@ inline static void write_byte(uint8_t byte)
 {
     for (int n = 0; n < 8; n++)
     {
-        bcm2835_gpio_write(PIN_LED_MOSI, (byte & (1 << (7 - n))) > 0);
-        bcm2835_gpio_write(PIN_LED_CLCK, HIGH);
+        gpiod_line_set_value(ln_led_dat, (byte & (1 << (7 - n))) > 0);
+        gpiod_line_set_value(ln_led_clk, HIGH);
         // nano_usleep_frac(CLCK_STRETCH);
-        bcm2835_gpio_write(PIN_LED_CLCK, LOW);
+        gpiod_line_set_value(ln_led_clk, LOW);
         // nano_usleep_frac(CLCK_STRETCH);
     }
 }
@@ -109,12 +117,12 @@ void set_led(double tmp, int br,int hi, int lo)
     }
     
     //start frame
-    bcm2835_gpio_write(PIN_LED_MOSI, LOW);
+    gpiod_line_set_value(ln_led_dat, LOW);
     for (int i = 0; i < 32; ++i)
     {
-        bcm2835_gpio_write(PIN_LED_CLCK, HIGH);
+        gpiod_line_set_value(ln_led_clk, HIGH);
         // nano_usleep_frac(CLCK_STRETCH);
-        bcm2835_gpio_write(PIN_LED_CLCK, LOW);
+        gpiod_line_set_value(ln_led_clk, LOW);
         // nano_usleep_frac(CLCK_STRETCH);
     }
     
@@ -125,12 +133,12 @@ void set_led(double tmp, int br,int hi, int lo)
     write_byte(r); // r
     
     // An end frame consisting of at least (n/2) bits of 1, where n is the number of LEDs in the string
-    bcm2835_gpio_write(PIN_LED_MOSI, HIGH);
+    gpiod_line_set_value(ln_led_dat, HIGH);
     for (int i = 0; i < 1; ++i)
     {
-        bcm2835_gpio_write(PIN_LED_CLCK, HIGH);
+        gpiod_line_set_value(ln_led_clk, HIGH);
         // nano_usleep_frac(CLCK_STRETCH);
-        bcm2835_gpio_write(PIN_LED_CLCK, LOW);
+        gpiod_line_set_value(ln_led_clk, LOW);
         // nano_usleep_frac(CLCK_STRETCH);
     }
     
@@ -218,18 +226,41 @@ void breath_led(double tmp, int brth, int on_threshold, int off_threshold, int d
         }
 }
 
+void signalHandler( int signum ) {
+   cout << "Signal: " << signum << endl;
+   if (signum == SIGTERM || signum == SIGINT)
+    {
+        set_led(1, 0, 1, 10);
+        gpiod_chip_close(chip);
+        cout<<"closed"<<endl;
+        exit(signum);
+    }
+}
+
 
 int main (void)
 {
-    
-    
-    bcm2835_init();
-    bcm2835_gpio_fsel(fanshim_pin, BCM2835_GPIO_FSEL_OUTP );
-    
-    bcm2835_gpio_fsel(PIN_LED_CLCK, BCM2835_GPIO_FSEL_OUTP );
-    bcm2835_gpio_fsel(PIN_LED_MOSI, BCM2835_GPIO_FSEL_OUTP );
+    signal(SIGINT, signalHandler);
 
-    cout<<"bcm lib version: "<<bcm2835_version()<<endl;
+    try {
+        const string chipname = "gpiochip0";
+        
+        chip = gpiod_chip_open_by_name(chipname.c_str());
+
+        ln_fan = gpiod_chip_get_line(chip, fanshim_pin);
+        gpiod_line_request_output(ln_fan, "fanshim", 0);
+
+        ln_led_dat = gpiod_chip_get_line(chip, led_dat_pin);
+        gpiod_line_request_output(ln_led_dat, "fanshim", 0);
+
+        ln_led_clk = gpiod_chip_get_line(chip, led_clck_pin);
+        gpiod_line_request_output(ln_led_clk, "fanshim", 0);
+
+    } catch (...) {
+        cout<<"init error"<<endl;
+    }
+    cout<<"fanshim init."<<endl;
+    
     
     map<string, int> fs_conf = get_fs_conf();
     
@@ -320,21 +351,21 @@ int main (void)
             cout<<"forcing fan on: override effective."<<endl;
         }
         
-        read_fs_pin = bcm2835_gpio_lev(fanshim_pin);
+        read_fs_pin = gpiod_line_get_value(ln_fan);
         if(all_high && read_fs_pin == LOW)
         {
-            bcm2835_gpio_write(fanshim_pin, HIGH);
+            gpiod_line_set_value(ln_fan, HIGH);
         }
         else
         {
             if(all_low && read_fs_pin == HIGH)
             {
-                bcm2835_gpio_write(fanshim_pin, LOW);
+                gpiod_line_set_value(ln_fan, LOW);
             }
         }
         
         
-        read_fs_pin = bcm2835_gpio_lev(fanshim_pin);
+        read_fs_pin = gpiod_line_get_value(ln_fan);
         cout<<"fan state now: "<< (read_fs_pin == LOW ? "[off]" : "[on]") <<endl;
         
         ofstream nodex_fs;

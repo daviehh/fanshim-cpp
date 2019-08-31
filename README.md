@@ -1,5 +1,5 @@
 # fanshim-cpp
-C++ driver code for the fanshim on raspberry pi.
+C++ driver code for the fanshim on raspberry pi using `libgpiod`.
 https://shop.pimoroni.com/products/fan-shim
 
 
@@ -12,16 +12,15 @@ https://shop.pimoroni.com/products/fan-shim
 **Only proceed if you know what the code is doing.**
 
 ## Credits
- - bcm2835 https://www.airspayce.com/mikem/bcm2835/index.html
- - nlohmann/json https://github.com/nlohmann/json/
  - official fanshim controller code https://github.com/pimoroni/fanshim-python
- 
+ - nlohmann/json https://github.com/nlohmann/json/ 
+
 
 ## Build
- - Install the bcm2835 library https://www.airspayce.com/mikem/bcm2835/index.html (tested with ver. 1.60)
+ - If not installed: get the `libgpiod-dev` library
  - Put the `json.hpp` file from https://github.com/nlohmann/json/releases in the same folder as the source code, tested with `3.7.0`
- - Compile with `clang++ fanshim_driver.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lbcm2835` (may also work with `g++`)
- 
+ - Compile with `clang++ fanshim_driver.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lgpiod` (may also work with `g++`)
+
  ## Example systemd service file
  Change `/path/to/compiled/binary` to the compiled binary path.
  
@@ -70,9 +69,6 @@ Will use the value in the file to override the defaults, no need to specify all 
 
  - No button support (I think given the small size of the button, it'll be easier to force the fan on/off through software based on e.g. whether a certain file exists. Currently, the file is hard-coded as `/usr/local/etc/.force_fanshim`: fan will be on if this file exists)
 
- - Does not currently handle exit signal.
- 
- - Use libgpio rather than wiringpi/bcm2835 [https://github.com/pimoroni/fanshim-python/issues/32#issuecomment-522629721]
 
 
 ## Additional features
