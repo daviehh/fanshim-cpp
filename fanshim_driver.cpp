@@ -245,7 +245,7 @@ void signalHandler( int signum ) {
 int main (void)
 {
     signal(SIGINT, signalHandler);
-    gpiod::line_request lrq({ "fanshim", gpiod::line_request ::DIRECTION_OUTPUT, 0});
+    gpiod::line_request lrq({"fanshim", gpiod::line_request::DIRECTION_OUTPUT, 0});
 
     try {
         const string chipname = "gpiochip0";
