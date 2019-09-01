@@ -14,7 +14,7 @@
 
 #include "json.hpp"
 #include <gpiod.hpp>
-// clang++ fanshim_driverd.cpp -O3 -std=c++17 -lstdc++fs -lgpiodcxx -o out_binary
+// clang++ fanshim_driver.cpp -O3 -std=c++17 -lstdc++fs -lgpiodcxx -o out_binary
 
 using json = nlohmann::json;
 using namespace std;
