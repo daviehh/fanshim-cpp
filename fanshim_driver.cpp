@@ -13,9 +13,8 @@
 #include <filesystem>
 
 #include "json.hpp"
-#include <gpiod.h>
-
-// clang++ fanshim_driverd.cpp -O3 -std=c++17 -lstdc++fs -lgpiod -o test 
+#include <gpiod.hpp>
+// clang++ fanshim_driverd.cpp -O3 -std=c++17 -lstdc++fs -lgpiodcxx -o out_binary
 
 using json = nlohmann::json;
 using namespace std;
@@ -30,8 +29,8 @@ const int HIGH =1;
 
 int br_counter = 0;
 
-struct gpiod_chip *chip;
-struct gpiod_line *ln_fan, *ln_led_clk, *ln_led_dat;
+gpiod::chip rchip;
+gpiod::line ln_fan, ln_led_clk, ln_led_dat;
 
 //only for <1 sec
 int nano_usleep_frac(long msec)
@@ -90,20 +89,25 @@ inline static void write_byte(uint8_t byte)
 {
     for (int n = 0; n < 8; n++)
     {
-        gpiod_line_set_value(ln_led_dat, (byte & (1 << (7 - n))) > 0);
-        gpiod_line_set_value(ln_led_clk, HIGH);
+        ln_led_dat.set_value((byte & (1 << (7 - n))) > 0);
+        ln_led_clk.set_value(HIGH);
         // nano_usleep_frac(CLCK_STRETCH);
-        gpiod_line_set_value(ln_led_clk, LOW);
+        ln_led_clk.set_value(LOW);
         // nano_usleep_frac(CLCK_STRETCH);
     }
 }
 
-void set_led(double tmp, int br,int hi, int lo)
+void set_led(double tmp, int br,int hi, int lo, bool off = false)
 {
     
     int r = 0, g = 0, b = 0;
     
-    if (br != 0)
+    if (off) {
+        r = 0;
+        g = 0;
+        b = 190;
+    } 
+    else if (br != 0)
     {
         double s, v;
         s = 1;
@@ -115,14 +119,15 @@ void set_led(double tmp, int br,int hi, int lo)
         g = rgb.at(1);
         b = rgb.at(2);
     }
+
     
     //start frame
-    gpiod_line_set_value(ln_led_dat, LOW);
+    ln_led_dat.set_value(LOW);
     for (int i = 0; i < 32; ++i)
     {
-        gpiod_line_set_value(ln_led_clk, HIGH);
+        ln_led_clk.set_value(HIGH);
         // nano_usleep_frac(CLCK_STRETCH);
-        gpiod_line_set_value(ln_led_clk, LOW);
+        ln_led_clk.set_value(LOW);
         // nano_usleep_frac(CLCK_STRETCH);
     }
     
@@ -133,12 +138,12 @@ void set_led(double tmp, int br,int hi, int lo)
     write_byte(r); // r
     
     // An end frame consisting of at least (n/2) bits of 1, where n is the number of LEDs in the string
-    gpiod_line_set_value(ln_led_dat, HIGH);
+    ln_led_dat.set_value(HIGH);
     for (int i = 0; i < 1; ++i)
     {
-        gpiod_line_set_value(ln_led_clk, HIGH);
+        ln_led_clk.set_value(HIGH);
         // nano_usleep_frac(CLCK_STRETCH);
-        gpiod_line_set_value(ln_led_clk, LOW);
+        ln_led_clk.set_value(LOW);
         // nano_usleep_frac(CLCK_STRETCH);
     }
     
@@ -230,10 +235,9 @@ void signalHandler( int signum ) {
    cout << "Signal: " << signum << endl;
    if (signum == SIGTERM || signum == SIGINT)
     {
-        set_led(1, 0, 1, 10);
-        gpiod_chip_close(chip);
+        set_led(1, 3, 1, 1, true);
         cout<<"closed"<<endl;
-        exit(signum);
+        exit(0);
     }
 }
 
@@ -241,20 +245,21 @@ void signalHandler( int signum ) {
 int main (void)
 {
     signal(SIGINT, signalHandler);
+    gpiod::line_request lrq({ "fanshim", gpiod::line_request ::DIRECTION_OUTPUT, 0});
 
     try {
         const string chipname = "gpiochip0";
         
-        chip = gpiod_chip_open_by_name(chipname.c_str());
+        rchip = gpiod::chip(chipname, gpiod::chip::OPEN_BY_NAME);
 
-        ln_fan = gpiod_chip_get_line(chip, fanshim_pin);
-        gpiod_line_request_output(ln_fan, "fanshim", 0);
+        ln_fan = rchip.get_line(fanshim_pin);
+        ln_fan.request(lrq, 0);
 
-        ln_led_dat = gpiod_chip_get_line(chip, led_dat_pin);
-        gpiod_line_request_output(ln_led_dat, "fanshim", 0);
+        ln_led_dat = rchip.get_line(led_dat_pin);
+        ln_led_dat.request(lrq, 0);
 
-        ln_led_clk = gpiod_chip_get_line(chip, led_clck_pin);
-        gpiod_line_request_output(ln_led_clk, "fanshim", 0);
+        ln_led_clk = rchip.get_line(led_clck_pin);
+        ln_led_clk.request(lrq, 0);
 
     } catch (...) {
         cout<<"init error"<<endl;
@@ -351,21 +356,22 @@ int main (void)
             cout<<"forcing fan on: override effective."<<endl;
         }
         
-        read_fs_pin = gpiod_line_get_value(ln_fan);
+        read_fs_pin = ln_fan.get_value();
+        
         if(all_high && read_fs_pin == LOW)
         {
-            gpiod_line_set_value(ln_fan, HIGH);
+            ln_fan.set_value(HIGH);
         }
         else
         {
             if(all_low && read_fs_pin == HIGH)
             {
-                gpiod_line_set_value(ln_fan, LOW);
+                ln_fan.set_value(LOW);
             }
         }
         
         
-        read_fs_pin = gpiod_line_get_value(ln_fan);
+        read_fs_pin = ln_fan.get_value();
         cout<<"fan state now: "<< (read_fs_pin == LOW ? "[off]" : "[on]") <<endl;
         
         ofstream nodex_fs;
