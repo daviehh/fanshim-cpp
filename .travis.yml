@@ -1,16 +1,17 @@
-dist: xenial
+dist: bionic
 
 language: cpp
-compiler: clang
+compiler: gcc
 
 addons:
   apt:
+    source:
+    - ubuntu-toolchain-r-test
     packages:
     - libgpiod-dev
-    - clang-7
-    - libc++abi-7-dev
-    - libc++7-dev
-    - llvm-7-dev
+    - gcc-8
+    - libc++abi-dev
+    - libc++-dev
 
 
 script:
