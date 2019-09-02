@@ -6,13 +6,14 @@ compiler: clang
 addons:
   apt:
     source:
-    - ubuntu-toolchain-r-test
-    - llvm-toolchain-bionic-7
+      - ubuntu-toolchain-r-test
+      - llvm-toolchain-bionic-7
     packages:
-    - libgpiod-dev
-    - clang-7
-    - libc++abi-7-dev
-    - libc++-7-dev
+      - libgpiod-dev
+      - clang-7
+      - libc++abi-7-dev
+      - libc++-7-dev
+      - g++-8
 
 
 script:
