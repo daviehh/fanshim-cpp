@@ -16,7 +16,9 @@ addons:
       - g++-8
 
 before_script:
+  - wget http://mirrors.kernel.org/ubuntu/pool/universe/libg/libgpiod/libgpiod2_1.2-3_amd64.deb -O /tmp/libgpiod2_1.2-3_amd64.deb
   - wget http://mirrors.kernel.org/ubuntu/pool/universe/libg/libgpiod/libgpiod-dev_1.2-3_amd64.deb -O /tmp/libgpiod-dev_1.2-3_amd64.deb
+  - sudo dpkg -i /tmp/libgpiod2_1.2-3_amd64.deb
   - sudo dpkg -i /tmp/libgpiod-dev_1.2-3_amd64.deb
 
 script:
