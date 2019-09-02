@@ -15,6 +15,9 @@ addons:
       - libc++-7-dev
       - g++-8
 
+before_script:
+  - wget http://mirrors.kernel.org/ubuntu/pool/universe/libg/libgpiod/libgpiod-dev_1.2-3_amd64.deb -O /tmp/libgpiod-dev_1.2-3_amd64.deb
+  - sudo dpkg -i /tmp/libgpiod-dev_1.2-3_amd64.deb
 
 script:
   - clang++ fanshim_driver.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lgpiodcxx
