@@ -7,8 +7,8 @@ addons:
   apt:
     packages:
     - libgpiod-dev
-    - clang-7
-    - libstdc++-6-dev
+    - libc++abi-dev
+    - libc++-dev
 
 
 script:
