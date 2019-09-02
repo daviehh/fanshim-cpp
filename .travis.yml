@@ -1,12 +1,10 @@
-dist: bionic
+dist: xenial
 
 language: cpp
-compiler: gcc
+compiler: clang
 
 addons:
   apt:
-    sources:
-    - llvm-toolchain-bionic
     packages:
     - libgpiod-dev
     - clang-7
