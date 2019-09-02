@@ -1,4 +1,4 @@
-dist: xenial
+dist: bionic
 
 language: cpp
 compiler: clang
@@ -7,7 +7,7 @@ addons:
   apt:
     source:
     - ubuntu-toolchain-r-test
-    - llvm-toolchain-xenial-7
+    - llvm-toolchain-bionic-7
     packages:
     - libgpiod-dev
     - clang-7
