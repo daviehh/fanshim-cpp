@@ -1,15 +1,19 @@
 dist: bionic
 
 language: cpp
-compiler: clang
+compiler: gcc
 
 addons:
   apt:
+    sources:
+    - llvm-toolchain-bionic
     packages:
     - libgpiod-dev
-    - libc++abi-dev
-    - libc++-dev
+    - clang-7
+    - libc++abi-7-dev
+    - libc++7-dev
+    - llvm-7-dev
 
 
 script:
-  - clang++ fanshim_driver.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lgpiodcxx
+  - g++ fanshim_driver.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lgpiodcxx
