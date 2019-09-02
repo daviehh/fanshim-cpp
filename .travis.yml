@@ -1,18 +1,19 @@
-dist: bionic
+dist: xenial
 
 language: cpp
-compiler: gcc
+compiler: clang
 
 addons:
   apt:
     source:
     - ubuntu-toolchain-r-test
+    - llvm-toolchain-xenial-7
     packages:
     - libgpiod-dev
-    - gcc-8
-    - libc++abi-dev
-    - libc++-dev
+    - clang-7
+    - libc++abi-7-dev
+    - libc++-7-dev
 
 
 script:
-  - g++ fanshim_driver.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lgpiodcxx
+  - clang++ fanshim_driver.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lgpiodcxx
