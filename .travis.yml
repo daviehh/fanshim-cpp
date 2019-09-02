@@ -1,0 +1,14 @@
+dist: bionic
+
+language: cpp
+compiler: clang
+
+addons:
+  apt:
+    packages:
+    - libgpiod-dev
+
+
+script:
+  - clang++ fanshim_driver.cpp -o fanshim_driver -O3 -std=c++17 -lstdc++fs -lgpiodcxx
+  
