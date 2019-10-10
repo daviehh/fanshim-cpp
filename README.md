@@ -1,6 +1,6 @@
 # fanshim-cpp
 
-[![Build Status](https://travis-ci.org/daviehh/fanshim-cpp.svg?branch=master)](https://travis-ci.org/daviehh/fanshim-cpp)
+[![Build Status](https://travis-ci.com/daviehh/fanshim-cpp.svg?branch=master)](https://travis-ci.com/daviehh/fanshim-cpp)
 
 C++ driver code for the fanshim on raspberry pi using `libgpiod`
 
