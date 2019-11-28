@@ -353,6 +353,7 @@ int main (void)
         if ( filesystem::exists(override_fp) )
         {
             all_high = true;
+            all_low = false;
             cout<<"forcing fan on: override effective."<<endl;
         }
         
